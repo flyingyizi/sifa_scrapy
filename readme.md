@@ -1,6 +1,12 @@
 
 
-# 一. 
+# 一. 司法拍卖网站抓取
+
+这个项目是以scrapy 框架来学习python练手的项目，通过该项目达到三个目的：
+
+- 理解python generator， 
+- 理解python scrapy框架，理解python Twisted框架中 reactor/deferred
+- 知道如何驱动headless  chrome/firefox
 
 ## 需求
 
@@ -58,6 +64,8 @@
 
 ## 运行
 
+运行前确保mysql环境已经具备（seleni/db/mysql_auction.sql 表与存储过程已经创建）
+
 对`seleni/cust_cfg/custcfg.py`配置文件进行修改，比如适配DB的信息。修改之后，可以采用下面两种方式运行爬虫
 
 - 方式1：将`seleni/cli/start.sh`方式在任意可执行的地方，修改该文件中的`script`变量，指向`runspider.py`实际存在的位置
@@ -68,6 +76,8 @@
 
 
 # 二. scrapy 源码解读
+
+下面记录了看scrapy源码时的一些笔记
 
 运行scrapy爬虫有几种方式，命令行方式，以及脚本方式。 本次以脚本方式来解读下scrapy框架源码。 [脚本方式启动scrapy](https://docs.scrapy.org/en/latest/topics/practices.html?highlight=script%20run%20%20#run-scrapy-from-a-script)又有几种方式, 本次以下面的入口来尝试解读
 
@@ -480,5 +490,5 @@ class Scraper:
 
 #### 6.2 处理入口与逻辑
 
-在前面解读`ExecutionEngine._handle_downloader_output`时已经提到，该方法是scraper模块中api被调用的入口，从而使得spider request的`'callback'`，以及piple item的`'process_item'`得到执行
+在前面解读`ExecutionEngine._handle_downloader_output`时已经提到，该`_handle_downloader_output`方法是scraper模块中api被调用的入口，从而使得spider request的`'callback'`，以及piple item的`'process_item'`得到执行
 
