@@ -1,0 +1,70 @@
+# -*- coding: utf-8 -*-
+
+# Define your item pipelines here
+#
+# Don't forget to add your pipeline to the ITEM_PIPELINES setting
+# See: https://doc.scrapy.org/en/latest/topics/item-pipeline.html
+
+import pymysql as pq
+from hashlib import md5
+import logging
+
+from .items import(
+    GpaiItem,
+    GpaiPage
+)
+
+class PaimaiPipeline(object):
+
+    def __init__(self, conn):
+        self.conn = conn
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        """返回pipeline instance"""
+        return cls(
+            conn=crawler.settings.get('DB_CONN'),
+        )
+
+    def open_spider(self, spider):
+        """open spider后将调用该方法"""        
+        self.client = pq.connect(self.conn)
+        self.cur = self.conn.cursor()
+        logging.info("数据库连接{}".format(self.client))
+
+    def close_spider(self, spider):
+        """close spider后将调用该方法"""
+        self.client.close()
+        self.cur.close()
+
+    def process_item(self, item, spider):
+        """
+        必须执行以下操作之一：返回带有数据的字典，返回一个Item （或任何后代类）对象，
+        返回 Deferred或引发 DropItem异常。删除的项目不再由其他管道组件处理。
+        """
+        # If args is a list or tuple, %s can be used as a placeholder in the query.
+        # If args is a dict, %(name)s can be used as a placeholder in the query.
+
+        if isinstance(item, GpaiItem):
+            x = item
+            x['id'] = md5(item['url'].encode('utf-8')).hexdigest()
+
+            try:
+                self.cur.execute(
+                    """select * from video_douban where id = %s""", x["id"])
+                ret = self.cur.fetchone()
+                if ret:
+                    sql = """update auction_items_tbl set  title=%s(title), url=%s(url), atten=%s(atten), rec=%s(rec), notice=%s(notice),intro=%s(intro), 
+                        attachs=%s(attachs), video=%s(video), images=%s(images), preferred=%s(preferred), state=%s(state)"""
+                    self.cur.execute(sql, item)
+                else:
+                    sql = """insert into auction_items_tbl(id, title, url, atten, rec, notice,intro,attachs,video,images,preferred,state) 
+                     VALUES (%s(id), %s(title), %s(url), %s(atten), %s(rec), %s(notice),%s(intro), %s(attachs), %s(video), %s(images), %s(preferred), %s(state))"""
+                    self.cur.execute(sql, x)
+                self.conn.commit()
+            except Exception as e:
+                logging.info(e)
+
+        return item
+
+        #raise DropItem("Missing price in %s" % item)

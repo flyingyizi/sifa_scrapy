@@ -1,0 +1,90 @@
+
+from .cchere_spider import CchereSpider
+
+from scrapy.crawler import CrawlerProcess
+from scrapy.settings import Settings
+from scrapy.utils.project import get_project_settings
+from twisted.internet import reactor
+import time
+import optparse
+from pathlib import Path
+import re
+
+#
+
+
+def convert_cchere_to_md(input_json: str, output_md_path: str, **kwargs):
+    """
+    将run_cchere_spider()输出的爬虫文件转化为md文件
+    文件名自动为专题名
+
+    kwargs paramenter:  1. `action`:  "genhtml" mean generate html file at the same time;
+    """
+    from seleni.staticspiders.items import convertjsontomd
+
+    convertjsontomd(input_json, output_md_path)
+    return
+
+    #  if kwargs.get("genhtml") is not None:
+    #      with  open()
+
+# In [1]: import codecs,markdown
+# In [2]: input=codecs.open("主题_从嘉陵江上游原是汉水上游推出汉族起源地 --  北纬
+#    ...: 42度.md",mode='r',encoding='utf8')
+# In [3]: text=input.read()
+# In [4]: html=markdown.markdown(text)
+# In [5]: output=codecs.open("主题_从嘉陵江上游原是汉水上游推出汉族起源地 --  北
+#    ...: 纬42度.html",mode='w',encoding='utf8')
+# In [6]: output.write(html)
+# In [7]: input.close()
+# In [8]: output.close()
+# In [9]:
+
+def run_cchere_spider(*args, **kwargs):
+    """
+    爬取cchere主题或全看模式网页
+
+    爬取：cchere_main(starturls="https://www.talkcc.net/topic/4525877")
+
+    :param list args: arguments to initialize the spider
+
+    :param dict kwargs: keyword arguments to initialize the spider
+                      1.if include custom ·starturls· string, the should 
+                        be seprated by ',' when it's multi-url
+                      2.if include custom `output` string, it should 
+                        be a existing directory
+    """
+
+    from .items import convertjsontomd
+
+    # 输出目录，output是本爬虫扩展
+    if kwargs.get('output') is not None:
+        out = kwargs.get('output')
+        kwargs.pop('output')
+    else:
+        out = "."
+
+    jsonfile = Path(out).joinpath("output.json")
+
+    s = get_project_settings()
+
+    s['FEED_FORMAT'] = 'json'  # 字典值见default_settings.py
+    s['FEED_URI'] = jsonfile.absolute().as_uri()
+    s['FEED_EXPORT_ENCODING'] = 'utf-8'
+    # s['FEEDS'] = {jsonfile.absolute().as_uri(): {"format": "json",'encoding': 'utf8'}, }
+    s['LOG_LEVEL'] = 'INFO'
+    s['LOG_FILE'] = 'cchere-spider.log'
+
+    process = CrawlerProcess(s)
+
+    # start_urls是scapy spider成员，starturls是本爬虫扩展
+    if kwargs.get('starturls') is not None:
+        if kwargs.get('start_urls') is not None:
+            kwargs['start_urls'].extend(kwargs['starturls'].split(','))
+        else:
+            kwargs['start_urls'] = kwargs['starturls'].split(',')
+        kwargs.pop('starturls')
+
+    process.crawl(CchereSpider, *args, **kwargs)
+
+    process.start()

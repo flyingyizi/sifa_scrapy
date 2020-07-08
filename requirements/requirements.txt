@@ -1,0 +1,6 @@
+scrapy>=2.1.0
+selenium==3.141
+html2text>=2020.1.16
+click>=7.0
+redis
+pymysql
